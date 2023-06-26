@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import '../encoding_type.dart';
 
 extension StringExtensions on String {
@@ -23,14 +21,10 @@ extension StringExtensions on String {
     }
 
     if (_kanjiRE.hasMatch(this)) {
-      return EncodingType.kanji;
+      // TODO: Plain Kanji support is not implemented yet
+      return EncodingType.byte;
     }
 
     return EncodingType.byte; // TODO: Ideally should be ECI
-  }
-
-  int toByteFirst() {
-    final latin1Encoder = latin1.encoder;
-    return latin1Encoder.convert(this[0])[0];
   }
 }

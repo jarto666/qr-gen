@@ -1,6 +1,6 @@
 import 'dart:math';
 
-// TODO: change to class with static consts
+// IDEA: change to class with static consts
 enum EncodingType {
   numeric(1),
   alphanumeric(2),

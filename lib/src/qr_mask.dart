@@ -41,8 +41,6 @@ int mask(QMatrix qrCode, List<Point<int>> sequence) {
     }
   }
 
-  // bestMaskIndex = 6;
-
   for (var point in sequence) {
     qrCode[point.x][point.y] = maskingFunctions[bestMaskIndex](point.x, point.y)
         ? !qrCode[point.x][point.y]
@@ -97,7 +95,7 @@ int evaluation_1(QMatrix qrCode) {
   return penalty;
 }
 
-// TODO: Optimize
+// IDEA: Optimize
 // * The second rule gives the QR code a penalty for each 2x2 area of same-colored modules in the matrix.
 int evaluation_2(QMatrix qrCode) {
   var penalty = 0;
@@ -142,7 +140,7 @@ const eval3Condition2 = [
   true
 ];
 
-// TODO: Optimize
+// IDEA: Optimize
 // * The third penalty rule looks for patterns of dark-light-dark-dark-dark-light-dark that have four light modules on either side.
 // * 10111010000 or 00001011101
 int evaluation_3(QMatrix qrCode) {
@@ -195,7 +193,6 @@ int evaluation_3(QMatrix qrCode) {
   return penalty;
 }
 
-// TODO: Optimize
 // * The final evaluation condition is based on the ratio of light modules to dark modules.
 int evaluation_4(QMatrix qrCode) {
   var penalty = 0;

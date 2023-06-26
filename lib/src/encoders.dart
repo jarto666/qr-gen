@@ -61,19 +61,28 @@ abstract class QEncoder {
 
     _encodeData(bitBuffer);
 
-    while (bitBuffer.length % 8 != 0) {
-      bitBuffer.putBit(false); // * Fill the rest of the last word with 0
+    // * Terminator 0000
+    final totalByteCount = dataCodewordsCount * 8;
+    if (bitBuffer.length + 4 <= totalByteCount) {
+      bitBuffer.put(0, 4);
     }
 
+    // * Fill the rest of the last word with 0
+    while (bitBuffer.length % 8 != 0) {
+      bitBuffer.putBit(false);
+    }
+
+    // * Fill the rest of words with 237 and 17
     var wordsLeft = dataCodewordsCount - (bitBuffer.length ~/ 8);
     for (int i = 0; i < wordsLeft; i++) {
-      bitBuffer.put(
-          i % 2 == 0 ? 236 : 17, 8); // * Fill the rest of words with 237 and 17
+      bitBuffer.put(i % 2 == 0 ? 236 : 17, 8);
     }
 
     final rawData = bitBuffer.words;
 
+    // * Reorder data by blocks
     final data = _reorderData(rawData, blocks);
+    // * Error correction data
     final ecData = _getECData(rawData, blocks, ecBlockSize);
 
     final codewords = Uint8List(data.length + ecData.length);
@@ -86,9 +95,9 @@ abstract class QEncoder {
   }
 
   Poly _getECData(List<int> data, int blocks, int ecBlockSize) {
-    /** Codewords in data blocks (in group 1) */
+    // Codewords in data blocks (in group 1)
     final dataBlockSize = (data.length / blocks).floor();
-    /** Blocks in group 1 */
+    // Blocks in group 1
     final group1 = blocks - data.length % blocks;
     final ecData = Uint8List(ecBlockSize * blocks);
     for (var offset = 0; offset < blocks; offset++) {
@@ -108,11 +117,11 @@ abstract class QEncoder {
   }
 
   List<int> _reorderData(List<int> words, int blocks) {
-    /** Codewords in data blocks (in group 1) */
+    // * Codewords in data blocks (in group 1)
     final blockSize = (words.length / blocks).floor();
-    /** Blocks in group 1 */
+    // * Blocks in group 1
     final group1 = blocks - words.length % blocks;
-    /** Starting index of each block inside `data` */
+    // * Starting index of each block inside `data`
     final blockStartIndexes = List.generate(
         blocks,
         (index) => index < group1
@@ -192,11 +201,9 @@ abstract class QEncoder {
   (int version, ErrorCorrectionLevel errorCorrectionLevel)
       getVersionAndErrorLevel(EncodingType encodingMode, int contentLength,
           {ErrorCorrectionLevel minErrorLevel = ErrorCorrectionLevel.low}) {
-    // The error levels we're going to consider
     final errorLevels =
         _edcOrder.sublist(0, _edcOrder.indexOf(minErrorLevel) + 1);
     for (var version = 1; version <= 40; version++) {
-      // You can iterate over strings in JavaScript 😁
       for (var errorLevel in errorLevels) {
         final capacity = _getCapacity(version, errorLevel, encodingMode);
         if (capacity >= contentLength) {
@@ -232,7 +239,6 @@ class QEciEncoder extends QEncoder {
   }
 }
 
-// TODO: Doesn't work for specific input lengths. To fix.
 class QNumericEncoder extends QEncoder {
   QNumericEncoder.fromString(String data)
       : super(Uint8List.fromList(data.codeUnits.map((e) => e - 0x30).toList()),
@@ -242,32 +248,16 @@ class QNumericEncoder extends QEncoder {
 
   @override
   void _encodeData(BitBuffer bitBuffer) {
-    // for (var i = 0; i < _originalString.length; i += 3) {
-    //   final chunk =
-    //       _originalString.substring(i, min(i + 3, _originalString.length));
-    //   final bitLength = _bitWidths[chunk.length];
-    //   final value = int.parse(chunk);
-    //   bitBuffer.put(value, bitLength);
-    // }
-
-    final leftOver = _data.length % 3;
-
-    final efficientGrab = _data.length - leftOver;
-    for (var i = 0; i < efficientGrab; i += 3) {
-      final encoded = _data[i] * 100 + _data[i + 1] * 10 + _data[i + 2];
-      bitBuffer.put(encoded, 10);
-    }
-    if (leftOver > 1) {
-      // 2 bytes
-      bitBuffer.put(_data[_data.length - 2] * 10 + _data[_data.length - 1], 7);
-    } else if (leftOver > 0) {
-      // 1 byte
-      bitBuffer.put(_data.last, 4);
+    for (var i = 0; i < _originalString.length; i += 3) {
+      final chunk =
+          _originalString.substring(i, min(i + 3, _originalString.length));
+      final bitLength = _bitWidths[chunk.length];
+      final value = int.parse(chunk);
+      bitBuffer.put(value, bitLength);
     }
   }
 }
 
-// TODO: Doesn't work for specific input lengths. To fix.
 class QAlphanumericEncoder extends QEncoder {
   QAlphanumericEncoder.fromString(String data)
       : super(utf8.encoder.convert(data), EncodingType.alphanumeric, data);
